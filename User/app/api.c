@@ -1192,7 +1192,7 @@ void APP_USART1_IRQHandler(void)
 		if ((USART1->SR & USART_FLAG_RXNE) != (u16)RESET)
 		{	           
 			udr0Temp = ((u16)(USART1->DR & (u16)0x01FF)) & 0xFF;
-			uart0_rx_isr(udr0Temp);
+			//uart0_rx_isr(udr0Temp);
 		}
 	}
 }

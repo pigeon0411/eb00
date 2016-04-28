@@ -284,27 +284,9 @@ void iris_ex_pin_set(u8 mode)
 
 void extern_function_pin_Init(void)
 {
-	GPIO_InitTypeDef GPIOD_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
-    
-	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_12|GPIO_Pin_13;
-    GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
 
-	GPIO_ResetBits(GPIOB,GPIO_Pin_12);	
-	GPIO_ResetBits(GPIOB,GPIO_Pin_13);	
 
-    system_para.system_para.para_ex_io_1_mode = 1;   
-
-    GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_10|GPIO_Pin_11;
-    GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
-    GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
-    
-	extern_io2_output(0); 
-	extern_io3_output(0); 
+	
 
 }
 
@@ -321,11 +303,27 @@ void key_init(void)
 {
 	GPIO_InitTypeDef GPIOD_InitStructure;
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
 	
-	GPIOD_InitStructure.GPIO_Pin = KEY_LEFT_PIN|KEY_RIGHT_PIN|KEY_UP_PIN|KEY_DOWN_PIN;
+	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_3|GPIO_Pin_4|GPIO_Pin_5|GPIO_Pin_14|GPIO_Pin_15;
     GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
     GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(KEY_PORT, &GPIOD_InitStructure);	
+    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
+
+	
+	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_6;
+    GPIO_Init(GPIOC, &GPIOD_InitStructure);	
+
+
+	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_10|GPIO_Pin_11;
+	GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
+	GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_Init(GPIOB, &GPIOD_InitStructure); 
+
+	GPIO_WriteBit(GPIOB,GPIO_Pin_0, Bit_RESET);
+	GPIO_WriteBit(GPIOB,GPIO_Pin_10, Bit_RESET);
+	GPIO_WriteBit(GPIOB,GPIO_Pin_11, Bit_RESET);
+
 }
 
 
@@ -499,29 +497,15 @@ void ports_initial(void)
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable , ENABLE);
 	// 改变指定管脚的映射 GPIO_Remap_SWJ_JTAGDisable ，JTAG-DP 禁用 + SW-DP 使能
 
-	camera_power_key_pin_Init();
 
     //DC Motor driver ic: BA6208
 	zoom_pin_Init();
 	focus_pin_Init();
     iris_pin_Init();
     
-	extern_function_pin_Init();
-    //camera_power_pin_Init();
-    motor_voltage_pin_Init();
-    //iris_auto_pin_Init();
-    
     
 	timer0_initial();
-
-	iris_ex_pin_Init();
 	
-//调试UART4 PC10,PC11，暂时屏蔽按键功能 
-	//key_init();
-
-
-	
-    uart_to_camera_init();
 
 	timer3_init();
 	timer1_init();
@@ -530,6 +514,8 @@ void ports_initial(void)
 	SPI_FLASH_Init();
 //spi_flash_init();
     an41908a_spi_pin_init();
+	key_init();
+
 	
 }
 
@@ -734,95 +720,10 @@ u16 KeyAvlDown = 0;//  按键按下有效结果寄存器
 u16 key_val_table[] = {KEY_LEFT_PIN,KEY_RIGHT_PIN,KEY_UP_PIN,KEY_DOWN_PIN,KEY_SET_PIN};
 
 
-// 程序的用法：每隔10MS 或者 20MS 调用一下这个程序即可
-#if 1
-u8 CheckKey(void)
-{
-	u16 KTmp1 = 0,KTmp2 = 0 ;
-	u16 KeyStatu = 0;
-	u16 val = 0;
-	u8 i =0;
-		
-	//if(!key_check_period_cnt)	
-	if(1)
-	{
-		val = GPIO_ReadInputData(KEY_PORT);
-
-		//val = val>>8;
-		val &= 0x1f00;
-
-		KeyStatu = val ;	
-
-		KeyPre = KeyCurrent ;  //保存上次按键状态
-		KeyCurrent = KeyStatu ;   //保存当前按键状态
-
-		delayms(10);
-
-		val = GPIO_ReadInputData(KEY_PORT);
-
-		//val = val>>8;
-		val &= 0x1f00;	
-
-		KeyCurrent = val ;
-		
-
-		key_check_period_cnt = 8;
-		return 1;
-	}
-
-	return 0;
-}
-
-
-#else
-void CheckKey(void)
-{
-	u16 KTmp1 = 0,KTmp2 = 0 ;
-	u16 KeyStatu = 0;
-	u16 val = 0;
-
-	if(!key_check_period_cnt)	
-	{
-		val = GPIO_ReadInputData(KEY_PORT);
-
-		//val = val>>8;
-		val &= 0x1f00;
-
-		KeyStatu = val ;	
-
-		KeyPre = KeyCurrent ;  //保存上次按键状态
-		KeyCurrent = KeyStatu ;   //保存当前按键状态
-			
-		KTmp1 = (KeyCurrent | KeyPre) ; //00 -> 0 取滤波值0
-		KTmp2 = (KeyCurrent & KeyPre) ; //11 -> 1 取滤波值1
-		
-		KeyStbLast = KeyStb ;	//保存上次经滤波后的值	
-		KeyStb &= KTmp1 ; //赋值当前经滤波后的值
-		KeyStb |= KTmp2 ;
-
-		//去抖后的当前按键状态 1有效
-		KeyAvlUp = (KeyStb ^ KeyStbLast) & KeyStbLast; //上升沿按下标志 获取1至0的状态	
-		KeyAvlDown = (KeyStb ^ KeyStbLast) & KeyStb ;	//下降沿按下标志 获取0至1的状态		
-
-		key_check_period_cnt = 8;
-	}
-	
-}
-
-#endif
-
-
-
-
 
 
 #define		KEY_DEFAULT		0X1F00
 
-
-u8 key_check(u16 key)
-{
-
-}
 
 u16 key_pre = 0;
 
@@ -836,13 +737,13 @@ u16 key_pre = 0;
 enum key_type
 {
 	KEY_NONE,
-	SLPLUS,	
 	SLSUB,	
+	SLPLUS, 
+	
 	SRPLUS,	
 	SRSUB,	
 	BPPLUS,	
 	BPSUB,	
-	EN_P0,	
 };
 
 #define	key_to_long(val)	(val|0x9000)
@@ -861,16 +762,16 @@ u32 key_merge(void)
 	data3 = GPIO_ReadInputData(KEY_PORT3);	
 		
 	key_tmp = (data2>>14)&0x0003;//0-1
-	key_tmp |= (data2>>1)&0x0004;//2//
-	key_tmp |= (data2>>1)&0x0008;// 3
-	key_tmp |= (data3>>1)&0x0010;// 4
-	key_tmp |= (data2<<3)&0x0020;// 5
-	key_tmp |= (data2<<7)&0x0040;// 6
+	key_tmp |= (data2>>2)&0x0004;//2//
+	key_tmp |= (data2>>2)&0x0008;// 3
+	key_tmp |= (data3>>2)&0x0010;// 4
+	key_tmp |= (data2<<2)&0x0020;// 5
 
 
 	return key_tmp;
 }
 
+#define	KEY_NUMS_MAX	6
 
 //返回0为无按键，返回非0值，则为对应的按键号
 static u16 key_ctl_check(void)
@@ -880,11 +781,11 @@ static u16 key_ctl_check(void)
 	static u32 long_press_cnt = 0;// 50ms
 	
 	key_tmp = key_merge();
-	for(i=0;i<20;i++)
+	for(i=0;i<KEY_NUMS_MAX;i++)
 	{
 		if(((key_tmp>>i)&0x0001)==0)
 		{
-			delay_X1ms(20);
+			delay_X1ms(40);
 
 			key_tmp = key_merge();
 
@@ -892,15 +793,19 @@ static u16 key_ctl_check(void)
 			{
 				if(key_pre == i+1)
 				{
-					if(long_press_cnt>40)
+
+					if((i+1) == BPPLUS || (i+1) == BPSUB)
 					{
+						if(long_press_cnt>40)
+						{
 
-						long_press_cnt=0;
-						key_pre = 0;
-						return ((i+1)|0x9000);
+							long_press_cnt=0;
+							key_pre = 0;
+							return ((i+1)|0x9000);
+						}
+
+						long_press_cnt++;
 					}
-
-					long_press_cnt++;
 				}
 				key_pre = i+1;
 				//return (i+1);
@@ -910,7 +815,7 @@ static u16 key_ctl_check(void)
 	}
 
 
-	if((key_pre && key_pre!=(i+1))||(key_pre && i==20))
+	if((key_pre && key_pre!=(i+1))||(key_pre && i>=KEY_NUMS_MAX))
 	{
 		i = key_pre|0x8000;
 		key_pre = 0;
@@ -930,7 +835,7 @@ static u16 key_ctl_check(void)
 
 s16 iris_step_cnt = 0;//靠近CLOSE边为0，到OPEN最大时为最大值35
 
-#define	 AN41908_STEPS_ONE_TIME (system_expand_para.system_para.para_stepsmotor_pulse_per_step)
+#define	 AN41908_STEPS_ONE_TIME  50//(system_expand_para.system_para.para_stepsmotor_pulse_per_step)
 
 
 //dir,1,left; 2,right; 0,stop 
@@ -986,9 +891,35 @@ void right_motor_run(u8 dir)
 
 
 
+u8 en_p0_state = 0;
 
 void key_analyze(u16 val)
 {
+
+	if(val > 0 && val < 0x8000)
+	{
+		switch(val)
+		{
+		case (SLPLUS):
+			left_motor_run(1);
+			break;
+		case (SLSUB):
+			left_motor_run(2);
+			break;
+
+		case (SRPLUS):
+			right_motor_run(1);
+			break;
+		case (SRSUB):
+			right_motor_run(2);
+			break;
+		default:
+			break;
+		}
+
+		return;
+
+	}
 
 	switch(val)
 	{
@@ -1008,15 +939,33 @@ void key_analyze(u16 val)
 
 	case key_to_release(BPPLUS):
 
+		GPIO_WriteBit(GPIOB,GPIO_Pin_10, Bit_SET);
+		delay_X1ms(300);
+		GPIO_WriteBit(GPIOB,GPIO_Pin_10, Bit_RESET);
+		
 
 		break;
 	case key_to_release(BPSUB):
+		GPIO_WriteBit(GPIOB,GPIO_Pin_11, Bit_SET);
+		delay_X1ms(300);
+		GPIO_WriteBit(GPIOB,GPIO_Pin_11, Bit_RESET);
 
 			break;
-			
-	case key_to_release(EN_P0):
+	case key_to_long(BPSUB):
+	case key_to_long(BPPLUS):
+		if(en_p0_state)
+		{
+			GPIO_WriteBit(GPIOB,GPIO_Pin_0, Bit_RESET);
 
-		break;
+			en_p0_state = 0;
+		}
+		else
+		{
+			GPIO_WriteBit(GPIOB,GPIO_Pin_0, Bit_SET);
+			en_p0_state = 1;
+		}
+			break;
+	
 		
 	default:
 		break;
@@ -1035,6 +984,8 @@ u8 key_monitor(void)
 		key_analyze(key_tmp);
 		
 	}
+
+	return 0;
 }
 
 
@@ -1059,11 +1010,31 @@ int main(void)
     delay_X1ms(600);
 
 
+
+#if 0
+		while(1)
+		{
+			LenDrvZoomMove(1,160);
+			LensDrvFocusMove(1,100);
+			delay_X1ms(300);
+			
+			delay_X1ms(1000);
+			LenDrvZoomMove(0,160);
+			LensDrvFocusMove(0,100);
+			delay_X1ms(300);
+			delay_X1ms(1000);
+		}
+	
+#endif
+
+
+
+
 	while(1)
 	{
 			
         key_monitor();
-		delay_X1ms(10);
+		delay_X1ms(40);
 		
 	}
 }
