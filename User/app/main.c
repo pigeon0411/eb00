@@ -835,8 +835,11 @@ static u16 key_ctl_check(void)
 
 s16 iris_step_cnt = 0;//靠近CLOSE边为0，到OPEN最大时为最大值35
 
-#define	 AN41908_STEPS_ONE_TIME  50//(system_expand_para.system_para.para_stepsmotor_pulse_per_step)
+#define	 AN41908_STEPS_ONE_TIME  30//(system_expand_para.system_para.para_stepsmotor_pulse_per_step)
 
+
+u32 left_motor_steps = 0;
+u32 right_motor_steps = 0;
 
 //dir,1,left; 2,right; 0,stop 
 //左边电机
@@ -848,19 +851,16 @@ void left_motor_run(u8 dir)
 		delay_X1ms(80);
 
 	}
-	else if(dir == 2)
+	else 
 	{
 		LenDrvZoomMove(IRIS_CLOSE_DIR,AN41908_STEPS_ONE_TIME);
 		delay_X1ms(80);
 
 	}
-	else if(dir == 0)
-	{
-		//LenDrvZoomMove(IRIS_OPEN_DIR,AN41908_STEPS_ONE_TIME);
-		delay_X1ms(80);
 
-	}
-			
+	an41908_motor_on_off(0);
+
+	//an41908_brake_set(0);		
 }
 
 
@@ -874,19 +874,17 @@ void right_motor_run(u8 dir)
 		delay_X1ms(80);
 
 	}
-	else if(dir == 2)
+	else
 	{
 		LensDrvFocusMove(IRIS_CLOSE_DIR,AN41908_STEPS_ONE_TIME);
 		delay_X1ms(80);
 
 	}
-	else if(dir == 0)
-	{
-		//LenDrvZoomMove(IRIS_OPEN_DIR,AN41908_STEPS_ONE_TIME);
-		delay_X1ms(80);
 
-	}
-			
+
+	an41908_motor_on_off(0);
+	//an41908_brake_set(0);		
+
 }
 
 
@@ -1014,15 +1012,15 @@ int main(void)
 #if 0
 		while(1)
 		{
-			LenDrvZoomMove(1,160);
-			LensDrvFocusMove(1,100);
+			LenDrvZoomMove(1,200);
+			LensDrvFocusMove(1,200);
 			delay_X1ms(300);
 			
-			delay_X1ms(1000);
-			LenDrvZoomMove(0,160);
-			LensDrvFocusMove(0,100);
+			delay_X1ms(2000);
+			LenDrvZoomMove(0,200);
+			LensDrvFocusMove(0,200);
 			delay_X1ms(300);
-			delay_X1ms(1000);
+			delay_X1ms(2000);
 		}
 	
 #endif

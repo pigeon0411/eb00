@@ -10,7 +10,8 @@
       <TargetName>SPI（W25X16）</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060020::V5.06 (build 20)::ARMCC</pCCUsed>
+      <pArmCC>5060061::V5.06 update 1 (build 61)::ARMCC</pArmCC>
+      <pCCUsed>5060061::V5.06 update 1 (build 61)::ARMCC</pCCUsed>
       <TargetOption>
         <TargetCommonOption>
           <Device>STM32F103RC</Device>
@@ -150,7 +151,7 @@
             <RestoreSysVw>1</RestoreSysVw>
           </Target>
           <RunDebugAfterBuild>0</RunDebugAfterBuild>
-          <TargetSelection>6</TargetSelection>
+          <TargetSelection>11</TargetSelection>
           <SimDlls>
             <CpuDll></CpuDll>
             <CpuDllArguments></CpuDllArguments>
@@ -164,7 +165,7 @@
             <PeripheralDll></PeripheralDll>
             <PeripheralDllArguments></PeripheralDllArguments>
             <InitializationFile></InitializationFile>
-            <Driver>Segger\JL2CM3.dll</Driver>
+            <Driver>STLink\ST-LINKIII-KEIL_SWO.dll</Driver>
           </TargetDlls>
         </DebugOption>
         <Utilities>
@@ -617,11 +618,6 @@
               <FilePath>..\..\User\app\camera_control.c</FilePath>
             </File>
             <File>
-              <FileName>extern_function.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\app\extern_function.c</FilePath>
-            </File>
-            <File>
               <FileName>jiguang.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\app\jiguang.c</FilePath>
@@ -640,11 +636,6 @@
               <FileName>osd_control.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\..\User\app\osd_control.c</FilePath>
-            </File>
-            <File>
-              <FileName>protocol.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\..\User\app\protocol.c</FilePath>
             </File>
             <File>
               <FileName>queue1.c</FileName>
