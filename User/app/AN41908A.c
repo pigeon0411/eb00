@@ -306,23 +306,16 @@ DATE		: 2011/02/21
 void LensDrvFocusZoomInit( void )
 {
 
-#if LENS_SUNNY //Zoom use AB chanel
 	LensDrvSPIWriteUint(0x20,0x1);
 	LensDrvSPIWriteUint(0x21,0x0000);
 	LensDrvSPIWriteUint(0x22,0x0503);//LensDrvSPIWriteUint(0x22,0x0503);
 
-	LensDrvSPIWriteUint(0x23,0xC8C8);
+		LensDrvSPIWriteUint(0x23,0xffff);
+//LensDrvSPIWriteUint(0x23,0xC8C8);
 	LensDrvSPIWriteUint(0x24,0x3400);  //micro step
 	LensDrvSPIWriteUint(0x25,200);
 
-#else
-	LensDrvSPIWriteUint(0x20,0x5c0a);
-	LensDrvSPIWriteUint(0x21,0x0000);
-	LensDrvSPIWriteUint(0x22,0x1603);
-	LensDrvSPIWriteUint(0x23,0xC8C8);
-	LensDrvSPIWriteUint(0x24,0x0400);
-	LensDrvSPIWriteUint(0x25,0x0160);
- #endif
+
 
 #if 1	//output a VD_FZ pluse
 	SPI_VD_FZ_AN41908A_PIN_MODE(1);
@@ -332,7 +325,8 @@ void LensDrvFocusZoomInit( void )
 #endif 
 
 	LensDrvSPIWriteUint(0x27,0x0503);
-	LensDrvSPIWriteUint(0x28,0xC8C8);
+	LensDrvSPIWriteUint(0x28,0xffff);
+//	LensDrvSPIWriteUint(0x28,0xC8C8);
 	LensDrvSPIWriteUint(0x29,0x3400);  //MIcro step
 	LensDrvSPIWriteUint(0x2A,200);
 	
@@ -465,7 +459,7 @@ void LensDrvFocusMove(u8 dir, uint FcStep)
 	SPI_VD_FZ_AN41908A_PIN_MODE(0);
 #endif 
 
-	delay_X1ms(500);
+//	delay_X1ms(500);
 
 //	bak1 &= (~0x0600);
 //	bak1 |= 0x0200;
@@ -554,9 +548,13 @@ void an41908_motor_on_off(u8 mode)
 	} 
 	else
 	{
-	backup_data |= 0x0200;
-		backup_data &=~0x0400;//enable motor output
-		LensDrvSPIWriteUint( LENSDRV_ZOOM_STEPS_REG,0);
+	backup_data = 0x0200;
+		LensDrvSPIWriteUint( LENSDRV_ZOOM_STEPS_REG,backup_data);
+		
+		delay_X1ms(20);
+		
+		backup_data =~0x0400;//enable motor output
+		LensDrvSPIWriteUint( LENSDRV_ZOOM_STEPS_REG,backup_data);
 	}
 
 	backup_data = LensDrvSPIReadUint( LENSDRV_FOCUS_STEPS_REG );
@@ -569,15 +567,19 @@ void an41908_motor_on_off(u8 mode)
 	} 
 	else
 	{
-	backup_data |= 0x0200;
-		backup_data &=~0x0400;//enable motor output
-		LensDrvSPIWriteUint( LENSDRV_FOCUS_STEPS_REG,0);
+	backup_data = 0x0200;
+		LensDrvSPIWriteUint( LENSDRV_FOCUS_STEPS_REG,backup_data);
+		
+		delay_X1ms(20);
+		
+		backup_data =~0x0400;//enable motor output
+		LensDrvSPIWriteUint( LENSDRV_FOCUS_STEPS_REG,backup_data);
 	}
 
 	
-#if 0	//output a VD_FZ pluse
+#if 1	//output a VD_FZ pluse
 	SPI_VD_FZ_AN41908A_PIN_MODE(1);
-	LensdrvDelay_us(10*ZoomStep);
+	LensdrvDelay_us(100);
 	//delay_X1ms(5000);
 	SPI_VD_FZ_AN41908A_PIN_MODE(0);
 #endif 

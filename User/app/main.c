@@ -299,12 +299,63 @@ void key_long_osd_emu(void)
 	GPIO_ResetBits(GPIOB,GPIO_Pin_9);	
 }
 
+
+void extern_function_pin_Init1(void)
+{
+	GPIO_InitTypeDef GPIOD_InitStructure;
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA, ENABLE);
+    
+	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_12|GPIO_Pin_13;
+    GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
+
+	GPIO_ResetBits(GPIOB,GPIO_Pin_12);	
+	GPIO_ResetBits(GPIOB,GPIO_Pin_13);	
+
+    system_para.system_para.para_ex_io_1_mode = 1;   
+
+    GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_10|GPIO_Pin_11;
+    GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
+    
+
+}
+
 void key_init(void)
 {
 	GPIO_InitTypeDef GPIOD_InitStructure;
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB, ENABLE);
-	
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOC, ENABLE);
+    
+	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_10|GPIO_Pin_11|GPIO_Pin_1|GPIO_Pin_2|GPIO_Pin_12|GPIO_Pin_13;
+    GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
+
+	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_0;
+    GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
+
+	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_1;
+    GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIOD_InitStructure);	
+
+
+
+
+	GPIO_ResetBits(GPIOB,GPIO_Pin_12);	
+	GPIO_ResetBits(GPIOB,GPIO_Pin_13);	
+	GPIO_ResetBits(GPIOB,GPIO_Pin_0);	
+	GPIO_ResetBits(GPIOB,GPIO_Pin_1);	
+	GPIO_ResetBits(GPIOB,GPIO_Pin_2);	
+	GPIO_ResetBits(GPIOB,GPIO_Pin_10);	
+	GPIO_ResetBits(GPIOB,GPIO_Pin_11);		
+		
 	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_3|GPIO_Pin_4|GPIO_Pin_5|GPIO_Pin_14|GPIO_Pin_15;
     GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
     GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
@@ -314,15 +365,6 @@ void key_init(void)
 	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_6;
     GPIO_Init(GPIOC, &GPIOD_InitStructure);	
 
-
-	GPIOD_InitStructure.GPIO_Pin = GPIO_Pin_0|GPIO_Pin_10|GPIO_Pin_11;
-	GPIOD_InitStructure.GPIO_Mode = GPIO_Mode_Out_OD;
-	GPIOD_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_Init(GPIOB, &GPIOD_InitStructure); 
-
-	GPIO_WriteBit(GPIOB,GPIO_Pin_0, Bit_RESET);
-	GPIO_WriteBit(GPIOB,GPIO_Pin_10, Bit_RESET);
-	GPIO_WriteBit(GPIOB,GPIO_Pin_11, Bit_RESET);
 
 }
 
@@ -499,17 +541,9 @@ void ports_initial(void)
 
 
     //DC Motor driver ic: BA6208
-	zoom_pin_Init();
-	focus_pin_Init();
-    iris_pin_Init();
-    
-    
+   
 	timer0_initial();
 	
-
-	timer3_init();
-	timer1_init();
-
 
 	SPI_FLASH_Init();
 //spi_flash_init();
@@ -773,6 +807,13 @@ u32 key_merge(void)
 
 #define	KEY_NUMS_MAX	6
 
+
+u32 press_continue_cnt = 0;
+u8 continue_motor_flag = 0;
+u16 motor_steps_cnt = 0;
+u8 press_long_flag = 0;
+
+
 //返回0为无按键，返回非0值，则为对应的按键号
 static u16 key_ctl_check(void)
 {
@@ -796,15 +837,33 @@ static u16 key_ctl_check(void)
 
 					if((i+1) == BPPLUS || (i+1) == BPSUB)
 					{
-						if(long_press_cnt>40)
+						if(long_press_cnt>80)
 						{
-
+							if(press_long_flag)
+								return 0;
+							
+							press_long_flag = 1;
 							long_press_cnt=0;
 							key_pre = 0;
+
+							
 							return ((i+1)|0x9000);
 						}
 
 						long_press_cnt++;
+					}
+					else
+					{
+						if(press_continue_cnt < 0xffff)
+							press_continue_cnt++;
+
+						if(press_continue_cnt > 10)
+						{
+							continue_motor_flag = 1;
+							key_pre = i+1;
+							return key_pre;
+
+						}
 					}
 				}
 				key_pre = i+1;
@@ -819,6 +878,20 @@ static u16 key_ctl_check(void)
 	{
 		i = key_pre|0x8000;
 		key_pre = 0;
+
+		if(press_continue_cnt>10)
+			i = 0;
+
+		if(press_long_flag)
+		{
+			press_long_flag = 0;
+			i =0;
+		}
+		press_continue_cnt = 0;
+		motor_steps_cnt = 0;
+			
+		continue_motor_flag = 0;
+		
 		return i;
 
 	}
@@ -835,7 +908,7 @@ static u16 key_ctl_check(void)
 
 s16 iris_step_cnt = 0;//靠近CLOSE边为0，到OPEN最大时为最大值35
 
-#define	 AN41908_STEPS_ONE_TIME  30//(system_expand_para.system_para.para_stepsmotor_pulse_per_step)
+#define	 AN41908_STEPS_ONE_TIME  25//(system_expand_para.system_para.para_stepsmotor_pulse_per_step)
 
 
 u32 left_motor_steps = 0;
@@ -843,18 +916,32 @@ u32 right_motor_steps = 0;
 
 //dir,1,left; 2,right; 0,stop 
 //左边电机
-void left_motor_run(u8 dir)
+void right_motor_run(u8 dir)
 {
 	if(dir == 1)
 	{
+
+				if(continue_motor_flag)
+		{
+			if(motor_steps_cnt > 100)
+				return;
+			motor_steps_cnt++;
+		}
 		LenDrvZoomMove(IRIS_OPEN_DIR,AN41908_STEPS_ONE_TIME);
-		delay_X1ms(80);
+		delay_X1ms(10);
 
 	}
 	else 
 	{
+
+				if(continue_motor_flag)
+		{
+			if(motor_steps_cnt > 100)
+				return;
+			motor_steps_cnt++;
+		}
 		LenDrvZoomMove(IRIS_CLOSE_DIR,AN41908_STEPS_ONE_TIME);
-		delay_X1ms(80);
+		delay_X1ms(10);
 
 	}
 
@@ -866,18 +953,31 @@ void left_motor_run(u8 dir)
 
 //dir,1,left; 2,right; 0,stop 
 //左边电机
-void right_motor_run(u8 dir)
+void left_motor_run(u8 dir)
 {
 	if(dir == 1)
 	{
+		if(continue_motor_flag)
+		{
+			if(motor_steps_cnt > 100)
+				return;
+			motor_steps_cnt++;
+		}
 		LensDrvFocusMove(IRIS_OPEN_DIR,AN41908_STEPS_ONE_TIME);
-		delay_X1ms(80);
+		delay_X1ms(10);
 
 	}
 	else
 	{
+				if(continue_motor_flag)
+		{
+			if(motor_steps_cnt > 100)
+				return;
+			motor_steps_cnt++;
+		}
+				
 		LensDrvFocusMove(IRIS_CLOSE_DIR,AN41908_STEPS_ONE_TIME);
-		delay_X1ms(80);
+		delay_X1ms(10);
 
 	}
 
@@ -1008,19 +1108,37 @@ int main(void)
     delay_X1ms(600);
 
 
-
 #if 0
+	s16 mycnt = 0;
+
+	mycnt = 0;
 		while(1)
 		{
-			LenDrvZoomMove(1,200);
-			LensDrvFocusMove(1,200);
-			delay_X1ms(300);
+
+			mycnt++;
+
+			if(mycnt >= 0 && mycnt < 300){
+			LenDrvZoomMove(1,30);
+			LensDrvFocusMove(1,30);
+			mycnt++;
+			}
+			else if(mycnt >= 300 && mycnt < 600 )
+			{
+				LenDrvZoomMove(0,30);
+			LensDrvFocusMove(0,30);
+			mycnt++;
+
+			}
+			else if(mycnt >= 600)
+				mycnt = 0;
 			
-			delay_X1ms(2000);
-			LenDrvZoomMove(0,200);
-			LensDrvFocusMove(0,200);
-			delay_X1ms(300);
-			delay_X1ms(2000);
+			delay_X1ms(100);
+			
+			//delay_X1ms(2000);
+			//LenDrvZoomMove(0,200);
+			//LensDrvFocusMove(0,200);
+			//delay_X1ms(300);
+			//delay_X1ms(2000);
 		}
 	
 #endif
@@ -1032,7 +1150,7 @@ int main(void)
 	{
 			
         key_monitor();
-		delay_X1ms(40);
+		delay_X1ms(10);
 		
 	}
 }
